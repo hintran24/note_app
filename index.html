@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Note App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Cải tiến toast notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      min-width: 280px;
+      max-width: 400px;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      color: white;
+      opacity: 0;
+      transform: translateY(30px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.4s ease;
+      animation: pulse 1s infinite alternate;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast.success {
+      background: linear-gradient(135deg, #2dd4bf, #14b8a6);
+    }
+    .toast.error {
+      background: linear-gradient(135deg, #f87171, #dc2626);
+    }
+    .toast i {
+      font-size: 1.25rem;
+    }
+    /* Hiệu ứng nhấp nháy nhẹ */
+    @keyframes pulse {
+      from { transform: translateY(0); }
+      to { transform: translateY(-2px); }
+    }
+    /* Cải tiến các animation */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes slideIn {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .fade-in { animation: fadeIn 0.6s ease-out; }
+    .slide-in { animation: slideIn 0.6s ease-out; }
+    .bounce { animation: bounce 0.5s ease-in-out; }
+    /* Thanh cuộn tùy chỉnh */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #e5e7eb; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+    /* Hiệu ứng hover cho card */
+    .note-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: 1px solid transparent;
+      background: white;
+    }
+    .note-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      border: 1px solid #ec4899;
+    }
+    /* Hiệu ứng focus cho input */
+    input:focus, textarea:focus, select:focus {
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+      border-color: #ec4899;
+    }
+    /* Gradient background tổng thể */
+    body {
+      background: linear-gradient(180deg, #f5f3ff 0%, #dbeafe 100%);
+    }
+    /* Cải tiến nút bấm */
+    .btn-primary {
+      background: linear-gradient(135deg, #ec4899, #db2777);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #f9a8d4, #ec4899);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .btn-secondary {
+      background: linear-gradient(135deg, #6b7280, #4b5563);
+      transition: all 0.3s ease;
+    }
+    .btn-secondary:hover {
+      background: linear-gradient(135deg, #9ca3af, #6b7280);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+      transition: all 0.3s ease;
+    }
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #fca5a5, #f87171);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    /* Cải tiến select multiple */
+    select[multiple] {
+      height: 140px;
+      scrollbar-width: thin;
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+    /* Form container */
+    .form-container {
+      background: white;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body class="font-sans">
+  <div class="container mx-auto px-4 py-8 max-w-7xl">
+    <header class="mb-8">
+      <h1 class="text-4xl font-extrabold text-gray-900 flex items-center">
+        <i class="fas fa-sticky-note mr-3 text-pink-600"></i> Note App
+      </h1>
+      <p class="mt-2 text-gray-600">Tổ chức suy nghĩ của bạn một cách dễ dàng</p>
+    </header>
+
+    <!-- Note Form -->
+    <div class="form-container p-6 rounded-xl mb-8 slide-in">
+      <h2 class="text-2xl font-semibold mb-6 text-gray-800" id="form-title">Thêm Ghi Chú</h2>
+      <form id="note-form" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
+          <input type="text" id="note-title" class="w-full p-3 border rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 transition" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nội dung</label>
+          <textarea id="note-content" class="w-full p-3 border rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 transition" rows="5"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Danh mục</label>
+          <select id="note-categories" multiple class="w-full p-3 border rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"></select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Thẻ</label>
+          <select id="note-tags" multiple class="w-full p-3 border rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"></select>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button type="submit" class="px-5 py-2 btn-primary text-white rounded-lg flex items-center">
+            <i class="fas fa-save mr-2"></i> Lưu
+          </button>
+          <button type="button" id="cancel-edit" class="px-5 py-2 btn-secondary text-white rounded-lg flex items-center hidden">
+            <i class="fas fa-times mr-2"></i> Hủy
+          </button>
+        </div>
+        <input type="hidden" id="note-id">
+      </form>
+    </div>
+
+    <!-- Notes List and Sidebar -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div class="lg:col-span-3">
+        <h2 class="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-list mr-3 text-pink-600"></i> Ghi Chú Của Bạn
+        </h2>
+        <div class="mb-6 flex flex-col sm:flex-row gap-4">
+          <input type="text" id="search-input" placeholder="Tìm kiếm ghi chú..." class="p-3 border rounded-lg bg-gray-50 text-gray-800 flex-grow focus:outline-none focus:ring-2 focus:ring-pink-500 transition">
+          <select id="category-filter" class="p-3 border rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 transition">
+            <option value="">Tất cả danh mục</option>
+          </select>
+          <select id="tag-filter" class="p-3 border rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 transition">
+            <option value="">Tất cả thẻ</option>
+          </select>
+          <button onclick="applyFilters()" class="px-5 py-2 btn-primary text-white rounded-lg flex items-center">
+            <i class="fas fa-filter mr-2"></i> Lọc
+          </button>
+        </div>
+        <div id="notes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-6"></div>
+      </div>
+      <div class="space-y-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 class="text-xl font-semibold mb-5 text-gray-800 flex items-center">
+            <i class="fas fa-folder mr-3 text-pink-600"></i> Danh Mục
+          </h2>
+          <form id="category-form" class="mb-5 flex items-center space-x-3">
+            <input type="text" id="category-name" placeholder="Thêm danh mục" class="p-3 border rounded-lg bg-gray-50 text-gray-800 flex-grow focus:outline-none focus:ring-2 focus:ring-pink-500 transition">
+            <button type="submit" class="px-4 py-3 btn-primary text-white rounded-lg bounce">
+              <i class="fas fa-plus"></i>
+            </button>
+          </form>
+          <ul id="categories-list" class="space-y-2"></ul>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 class="text-xl font-semibold mb-5 text-gray-800 flex items-center">
+            <i class="fas fa-tags mr-3 text-pink-600"></i> Thẻ
+          </h2>
+          <form id="tag-form" class="mb-5 flex items-center space-x-3">
+            <input type="text" id="tag-name" placeholder="Thêm thẻ" class="p-3 border rounded-lg bg-gray-50 text-gray-800 flex-grow focus:outline-none focus:ring-2 focus:ring-pink-500 transition">
+            <button type="submit" class="px-4 py-3 btn-primary text-white rounded-lg bounce">
+              <i class="fas fa-plus"></i>
+            </button>
+          </form>
+          <ul id="tags-list" class="space-y-2"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"></script>
+  <script>
+    const API_URL = 'http://127.0.0.1:5000/api';
+
+    // Cải tiến hàm showToast để thêm icon
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const icon = type === 'success' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-exclamation-circle"></i>';
+      toast.innerHTML = `${icon} ${message}`;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => { toast.className = 'toast'; }, 3000);
+    }
+
+    async function fetchNotes(page = 1, perPage = 10, search = '', categoryId = null, tagId = null) {
+      try {
+        const params = { page, per_page: perPage, search };
+        if (categoryId) params.category = categoryId;
+        if (tagId) params.tag = tagId;
+        console.log('Fetching notes with params:', params);
+        const response = await axios.get(`${API_URL}/notes`, { params });
+        console.log('API Response:', response.data);
+        const { items: notes, total_pages, total_items, page: currentPage } = response.data;
+        console.log('Notes array:', notes);
+        const notesList = document.getElementById('notes-list');
+        if (!notesList) {
+          console.error('Element #notes-list not found in DOM');
+          showToast('Lỗi giao diện: Không tìm thấy phần tử danh sách ghi chú', 'error');
+          return;
+        }
+        notesList.innerHTML = '';
+
+        if (!notes || notes.length === 0) {
+          notesList.innerHTML = '<p class="text-gray-500">Không tìm thấy ghi chú.</p>';
+          console.log('No notes to display');
+          renderPagination(currentPage, total_pages);
+          return;
+        }
+
+        const [categoryResponse, tagResponse] = await Promise.all([
+          axios.get(`${API_URL}/categories`),
+          axios.get(`${API_URL}/tags`)
+        ]);
+        const categories = categoryResponse.data || [];
+        const tags = tagResponse.data || [];
+        console.log('Categories:', categories, 'Tags:', tags);
+
+        for (const note of notes) {
+          try {
+            console.log('Rendering note:', note);
+            const noteCategoryIds = Array.isArray(note.category_ids) ? note.category_ids : [];
+            const noteTagIds = Array.isArray(note.tag_ids) ? note.tag_ids : [];
+            const noteCategories = categories.filter(cat => noteCategoryIds.includes(cat.id)).map(cat => cat.name);
+            const noteTags = tags.filter(tag => noteTagIds.includes(tag.id)).map(tag => tag.name);
+
+            const div = document.createElement('div');
+            div.className = 'note-card p-5 rounded-xl fade-in';
+            div.innerHTML = `
+              <h3 class="text-xl font-semibold text-gray-800 mb-2">${note.title || 'Không có tiêu đề'}</h3>
+              <p class="text-gray-600 mb-3 line-clamp-3">${note.content || 'Không có nội dung'}</p>
+              <p class="text-sm text-gray-400 mb-2">Tạo lúc: ${note.created_at || 'Không xác định'}</p>
+              <p class="text-sm text-gray-500 mb-2">Danh mục: ${noteCategories.length ? noteCategories.join(', ') : 'Không có'}</p>
+              <p class="text-sm text-gray-500 mb-4">Thẻ: ${noteTags.length ? noteTags.join(', ') : 'Không có'}</p>
+              <div class="flex space-x-3">
+                <button onclick="editNote(${note.id})" class="px-4 py-2 btn-primary text-white rounded-lg flex items-center">
+                  <i class="fas fa-edit mr-2"></i> Sửa
+                </button>
+                <button onclick="deleteNote(${note.id})" class="px-4 py-2 btn-danger text-white rounded-lg flex items-center">
+                  <i class="fas fa-trash mr-2"></i> Xóa
+                </button>
+              </div>
+            `;
+            console.log('Appending note to DOM:', div);
+            notesList.appendChild(div);
+          } catch (error) {
+            console.error('Lỗi khi hiển thị ghi chú ID:', note.id, error);
+            showToast(`Lỗi khi hiển thị ghi chú ID ${note.id}`, 'error');
+          }
+        }
+
+        renderPagination(currentPage, total_pages);
+      } catch (error) {
+        console.error('Lỗi khi lấy ghi chú:', error);
+        const notesList = document.getElementById('notes-list');
+        notesList.innerHTML = '<p class="text-red-500">Không thể tải ghi chú. Vui lòng kiểm tra backend hoặc mạng.</p>';
+        showToast('Lỗi khi lấy ghi chú: ' + (error.response?.data?.error || error.message), 'error');
+      }
+    }
+
+    function renderPagination(currentPage, totalPages) {
+      const paginationDiv = document.createElement('div');
+      paginationDiv.className = 'mt-6 flex justify-center space-x-2';
+      for (let i = 1; i <= totalPages; i++) {
+        const button = document.createElement('button');
+        button.textContent = i;
+        button.className = `px-4 py-2 rounded-lg ${i === currentPage ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-pink-400 hover:text-white transition`;
+        button.onclick = () => fetchNotes(i);
+        paginationDiv.appendChild(button);
+      }
+      const notesList = document.getElementById('notes-list');
+      const existingPagination = notesList.nextElementSibling;
+      if (existingPagination && existingPagination.className.includes('flex justify-center')) {
+        existingPagination.remove();
+      }
+      notesList.insertAdjacentElement('afterend', paginationDiv);
+      console.log('Rendered pagination:', { currentPage, totalPages });
+    }
+
+    async function fetchCategories() {
+      try {
+        const response = await axios.get(`${API_URL}/categories`);
+        const categories = response.data || [];
+        console.log('Fetched categories:', categories);
+        const categorySelect = document.getElementById('note-categories');
+        const categoryList = document.getElementById('categories-list');
+        const categoryFilter = document.getElementById('category-filter');
+        categorySelect.innerHTML = '';
+        categoryList.innerHTML = '';
+        categoryFilter.innerHTML = '<option value="">Tất cả danh mục</option>';
+        categories.forEach(category => {
+          categorySelect.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+          categoryFilter.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+          const li = document.createElement('li');
+          li.className = 'py-1 flex justify-between items-center';
+          li.innerHTML = `
+            <span class="text-gray-700 hover:text-pink-600 transition">${category.name}</span>
+            <button onclick="deleteCategory(${category.id})" class="text-red-500 hover:text-red-700">
+              <i class="fas fa-trash"></i>
+            </button>
+          `;
+          categoryList.appendChild(li);
+        });
+      } catch (error) {
+        console.error('Lỗi khi lấy danh mục:', error);
+        showToast('Lỗi khi lấy danh mục: ' + (error.response?.data?.error || error.message), 'error');
+      }
+    }
+
+    async function fetchTags() {
+      try {
+        const response = await axios.get(`${API_URL}/tags`);
+        const tags = response.data || [];
+        console.log('Fetched tags:', tags);
+        const tagSelect = document.getElementById('note-tags');
+        const tagList = document.getElementById('tags-list');
+        const tagFilter = document.getElementById('tag-filter');
+        tagSelect.innerHTML = '';
+        tagList.innerHTML = '';
+        tagFilter.innerHTML = '<option value="">Tất cả thẻ</option>';
+        tags.forEach(tag => {
+          tagSelect.innerHTML += `<option value="${tag.id}">${tag.name}</option>`;
+          tagFilter.innerHTML += `<option value="${tag.id}">${tag.name}</option>`;
+          const li = document.createElement('li');
+          li.className = 'py-1 flex justify-between items-center';
+          li.innerHTML = `
+            <span class="text-gray-700 hover:text-pink-600 transition">${tag.name}</span>
+            <button onclick="deleteTag(${tag.id})" class="text-red-500 hover:text-red-700">
+              <i class="fas fa-trash"></i>
+            </button>
+          `;
+          tagList.appendChild(li);
+        });
+      } catch (error) {
+        console.error('Lỗi khi lấy thẻ:', error);
+        showToast('Lỗi khi lấy thẻ: ' + (error.response?.data?.error || error.message), 'error');
+      }
+    }
+
+    async function saveNote(e) {
+      e.preventDefault();
+      const id = document.getElementById('note-id').value;
+      const title = document.getElementById('note-title').value.trim();
+      const content = document.getElementById('note-content').value.trim();
+      const categoryIds = Array.from(document.getElementById('note-categories').selectedOptions).map(opt => parseInt(opt.value));
+      const tagIds = Array.from(document.getElementById('note-tags').selectedOptions).map(opt => parseInt(opt.value));
+      const noteData = { title, content, category_ids: categoryIds, tag_ids: tagIds };
+      console.log('Saving note with ID:', id, 'Data:', noteData);
+
+      if (!title) {
+        showToast('Tiêu đề không được để trống', 'error');
+        return;
+      }
+
+      try {
+        let response;
+        if (id && !isNaN(parseInt(id))) {
+          const parsedId = parseInt(id);
+          console.log(`Sending PUT request to ${API_URL}/notes/${parsedId}`);
+          response = await axios.put(`${API_URL}/notes/${parsedId}`, noteData, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          console.log('PUT Response:', response.data);
+          showToast('Cập nhật ghi chú thành công');
+        } else {
+          response = await axios.post(`${API_URL}/notes`, noteData, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          console.log('POST Response:', response.data);
+          showToast('Thêm ghi chú thành công');
+        }
+        resetForm();
+        fetchNotes(1, 10, '', null, null);
+      } catch (error) {
+        console.error('Lỗi khi lưu ghi chú:', error.response ? error.response.data : error.message, 'Status:', error.response?.status);
+        showToast('Lỗi khi lưu ghi chú: ' + (error.response?.data?.error || error.message), 'error');
+      }
+    }
+
+    async function editNote(id) {
+      try {
+        console.log(`Fetching note with ID: ${id}`);
+        const response = await axios.get(`${API_URL}/notes/${id}`);
+        const note = response.data;
+        console.log('Editing note data:', note);
+        if (!note || !note.id || isNaN(parseInt(note.id))) {
+          throw new Error('Invalid note ID received from API');
+        }
+        document.getElementById('form-title').textContent = 'Sửa Ghi Chú';
+        document.getElementById('note-id').value = note.id;
+        document.getElementById('note-title').value = note.title || '';
+        document.getElementById('note-content').value = note.content || '';
+        document.getElementById('cancel-edit').classList.remove('hidden');
+
+        const categorySelect = document.getElementById('note-categories');
+        Array.from(categorySelect.options).forEach(opt => {
+          opt.selected = note.category_ids && note.category_ids.includes(parseInt(opt.value));
+        });
+
+        const tagSelect = document.getElementById('note-tags');
+        Array.from(tagSelect.options).forEach(opt => {
+          opt.selected = note.tag_ids && note.tag_ids.includes(parseInt(opt.value));
+        });
+      } catch (error) {
+        console.error('Lỗi khi lấy ghi chú để sửa:', error.response ? error.response.data : error.message);
+        showToast('Lỗi khi lấy ghi chú: ' + (error.response?.data?.error || error.message), 'error');
+      }
+    }
+
+    async function deleteNote(id) {
+      if (confirm('Bạn có chắc muốn xóa ghi chú này không?')) {
+        try {
+          await axios.delete(`${API_URL}/notes/${id}`);
+          showToast('Xóa ghi chú thành công');
+          fetchNotes(1, 10, '', null, null);
+        } catch (error) {
+          console.error('Lỗi khi xóa ghi chú:', error.response ? error.response.data : error.message);
+          showToast('Lỗi khi xóa ghi chú: ' + (error.response?.data?.error || error.message), 'error');
+        }
+      }
+    }
+
+    async function addCategory(e) {
+      e.preventDefault();
+      const name = document.getElementById('category-name').value.trim();
+      if (name) {
+        try {
+          await axios.post(`${API_URL}/categories`, { name });
+          document.getElementById('category-form').reset();
+          showToast('Thêm danh mục thành công');
+          fetchCategories();
+        } catch (error) {
+          console.error('Lỗi khi thêm danh mục:', error.response ? error.response.data : error.message);
+          showToast('Lỗi khi thêm danh mục: ' + (error.response?.data?.error || error.message), 'error');
+        }
+      }
+    }
+
+    async function deleteCategory(id) {
+      if (confirm('Bạn có chắc muốn xóa danh mục này không?')) {
+        try {
+          await axios.delete(`${API_URL}/categories/${id}`);
+          showToast('Xóa danh mục thành công');
+          fetchCategories();
+          fetchNotes(1, 10, '', null, null);
+        } catch (error) {
+          console.error('Lỗi khi xóa danh mục:', error.response ? error.response.data : error.message);
+          showToast('Lỗi khi xóa danh mục: ' + (error.response?.data?.error || error.message), 'error');
+        }
+      }
+    }
+
+    async function addTag(e) {
+      e.preventDefault();
+      const name = document.getElementById('tag-name').value.trim();
+      if (name) {
+        try {
+          await axios.post(`${API_URL}/tags`, { name });
+          document.getElementById('tag-form').reset();
+          showToast('Thêm thẻ thành công');
+          fetchTags();
+        } catch (error) {
+          console.error('Lỗi khi thêm thẻ:', error.response ? error.response.data : error.message);
+          showToast('Lỗi khi thêm thẻ: ' + (error.response?.data?.error || error.message), 'error');
+        }
+      }
+    }
+
+    async function deleteTag(id) {
+      if (confirm('Bạn có chắc muốn xóa thẻ này không?')) {
+        try {
+          await axios.delete(`${API_URL}/tags/${id}`);
+          showToast('Xóa thẻ thành công');
+          fetchTags();
+          fetchNotes(1, 10, '', null, null);
+        } catch (error) {
+          console.error('Lỗi khi xóa thẻ:', error.response ? error.response.data : error.message);
+          showToast('Lỗi khi xóa thẻ: ' + (error.response?.data?.error || error.message), 'error');
+        }
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('note-form').reset();
+      document.getElementById('form-title').textContent = 'Thêm Ghi Chú';
+      document.getElementById('note-id').value = '';
+      document.getElementById('cancel-edit').classList.add('hidden');
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('search-input').value;
+      const categoryId = document.getElementById('category-filter').value || null;
+      const tagId = document.getElementById('tag-filter').value || null;
+      console.log('Applying filters:', { search, categoryId, tagId });
+      fetchNotes(1, 10, search, categoryId, tagId);
+    }
+
+    document.getElementById('note-form').addEventListener('submit', saveNote);
+    document.getElementById('category-form').addEventListener('submit', addCategory);
+    document.getElementById('tag-form').addEventListener('submit', addTag);
+    document.getElementById('cancel-edit').addEventListener('click', resetForm);
+    document.getElementById('search-input').addEventListener('input', applyFilters);
+
+    console.log('Initializing app...');
+    fetchCategories();
+    fetchTags();
+    fetchNotes(1, 10, '', null, null);
+  </script>
+</body>
+</html>
