@@ -179,12 +179,12 @@ def delete_note(id):
     if cursor.rowcount == 0:
         return jsonify({'error': 'Note not found'}), 404
     return jsonify({'message': 'Note deleted'})
-
+#API: Lấy tất cả danh mục
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
     categories = fetch_data('SELECT * FROM categories')
     return jsonify([{'id': c[0], 'name': c[1]} for c in categories])
-
+#API: Thêm danh mục mới 
 @app.route('/api/categories', methods=['POST'])
 def add_category():
     data = request.get_json()
@@ -197,7 +197,7 @@ def add_category():
         return jsonify({'id': new_category_id, 'name': name}), 201
     except sqlite3.IntegrityError:
         return jsonify({'error': 'Category name already exists'}), 400
-
+#API: Xóa danh mục
 @app.route('/api/categories/<int:id>', methods=['DELETE'])
 def delete_category(id):
     category = fetch_data('SELECT * FROM categories WHERE id = ?', (id,))
@@ -206,12 +206,12 @@ def delete_category(id):
     execute_query('DELETE FROM note_categories WHERE category_id = ?', (id,))
     cursor = execute_query('DELETE FROM categories WHERE id = ?', (id,))
     return jsonify({'message': 'Category deleted successfully'}), 200
-
+#API: Lấy tất cả thẻ 
 @app.route('/api/tags', methods=['GET'])
 def get_tags():
     tags = fetch_data('SELECT * FROM tags')
     return jsonify([{'id': t[0], 'name': t[1]} for t in tags])
-
+#API: Thêm thẻ mới
 @app.route('/api/tags', methods=['POST'])
 def add_tag():
     data = request.get_json()
@@ -224,7 +224,7 @@ def add_tag():
         return jsonify({'id': new_tag_id, 'name': name}), 201
     except sqlite3.IntegrityError:
         return jsonify({'error': 'Tag name already exists'}), 400
-
+#API: Xóa thẻ 
 @app.route('/api/tags/<int:id>', methods=['DELETE'])
 def delete_tag(id):
     tag = fetch_data('SELECT * FROM tags WHERE id = ?', (id,))
@@ -235,6 +235,7 @@ def delete_tag(id):
     return jsonify({'message': 'Tag deleted successfully'}), 200
 
 from flask import send_from_directory
+#API Phục vụ trang chính
 @app.route('/')
 def serve_index():
     return send_from_directory('.', 'index.html')
